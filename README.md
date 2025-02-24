@@ -2,6 +2,8 @@
 
 A tool for chatting with a PDF using local LLMs. This project leverages Flask, PyMuPDF, and local models such as Ollama for embeddings and ChatOllama for generating responses.
 
+![{F4DB45FD-9A07-4FE0-97EF-8861AE527DBB}](https://github.com/user-attachments/assets/2a541109-eff3-47d7-855d-1054e023b703)
+
 ## Requirements
 - Python 3.x
 - [Ollama](https://www.ollama.com) (for embeddings and chat model)
