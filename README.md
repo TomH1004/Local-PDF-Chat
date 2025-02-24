@@ -24,3 +24,8 @@ A tool for chatting with a PDF using local LLMs. This project leverages Flask, P
 3. Install dependencies:
    ```bash
    pip install -r requirements.txt
+
+## Usage
+1. Start the ```backend.py```
+2. ```cd frontend``` and compile frontend with ```ng serve```
+3. Download Models from Ollama (can be easily changed in ```backend.py```)
