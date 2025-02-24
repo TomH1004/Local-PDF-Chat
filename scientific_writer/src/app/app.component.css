@@ -1,0 +1,85 @@
+.split-container {
+  display: flex;
+  height: calc(100vh - 64px); /* Adjust for toolbar height */
+}
+
+/* Left Panel: Chat & Upload */
+.left-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #ccc;
+  overflow: hidden;
+}
+
+.upload-section {
+  padding: 1rem;
+}
+
+.chat-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  background: linear-gradient(to bottom, #fafafa, #f0f0f0);
+  overflow-y: auto;
+}
+
+/* Message Bubbles */
+.message-bubble {
+  max-width: 60%;
+  padding: 0.75rem 1rem;
+  margin: 0.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  word-wrap: break-word;
+  position: relative;
+}
+
+.user-message {
+  align-self: flex-end;
+  background-color: #dcf8c6; /* Light green */
+  border-top-right-radius: 0.3rem;
+}
+
+.assistant-message {
+  align-self: flex-start;
+  background-color: #fff; /* White */
+  border-top-left-radius: 0.3rem;
+}
+
+/* System message (optional) */
+.system-message {
+  align-self: center;
+  background-color: #fffde7;
+}
+
+/* Question input */
+.question-input {
+  padding: 1rem;
+  border-top: 1px solid #ccc;
+}
+
+/* Right Panel: PDF Viewer */
+.right-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pdf-viewer {
+  flex: 1;
+}
+
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+/* Full-width utility */
+.full-width {
+  width: 100%;
+}
