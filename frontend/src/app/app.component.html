@@ -8,30 +8,169 @@
     <!-- Upload PDF -->
     <mat-card class="upload-section">
       <h2>Upload PDF</h2>
-      <input type="file" (change)="onFileSelected($event)" accept="application/pdf" />
+      <div class="upload-container">
+        <input type="file" (change)="onFileSelected($event)" accept="application/pdf" #fileInput style="display: none" />
+        <button mat-raised-button color="primary" (click)="fileInput.click()">
+          <mat-icon>upload_file</mat-icon> Select PDF
+        </button>
+        <span *ngIf="uploadedFiles" class="file-name">{{ uploadedFiles[0].name }}</span>
+      </div>
+      
+      <!-- Upload Progress -->
+      <div *ngIf="isUploading || (isProcessing && processingProgress > 0)" class="upload-progress">
+        <div class="progress-info">
+          <span>{{ processingStage }}</span>
+          <span>{{ processingProgress }}%</span>
+        </div>
+        <mat-progress-bar [mode]="processingProgress > 0 ? 'determinate' : 'indeterminate'" [value]="processingProgress"></mat-progress-bar>
+      </div>
+      
+      <!-- Image Upload Section -->
+      <div class="image-upload-section" *ngIf="!isProcessing && chatMessages.length > 0">
+        <h3>Upload Image</h3>
+        <div class="upload-container">
+          <input type="file" (change)="onImageSelected($event)" accept="image/*" #imageInput style="display: none" />
+          <button mat-raised-button color="accent" (click)="imageInput.click()" [disabled]="isUploadingImage">
+            <mat-icon>image</mat-icon> Select Image
+          </button>
+          <button mat-icon-button color="warn" *ngIf="currentImagePath" (click)="clearCurrentImage()" matTooltip="Clear current image">
+            <mat-icon>clear</mat-icon>
+          </button>
+        </div>
+        <div *ngIf="isUploadingImage" class="upload-progress">
+          <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+          <span class="upload-status">Uploading image...</span>
+        </div>
+        <div *ngIf="currentImagePath" class="current-image-indicator">
+          <mat-icon color="accent">check_circle</mat-icon>
+          <span>Image ready for next question</span>
+        </div>
+      </div>
     </mat-card>
 
     <!-- Chat Section -->
     <div class="chat-section">
-      <!-- Show spinner while processing -->
-      <ng-container *ngIf="isProcessing; else chatWindow">
+      <!-- Show spinner while processing document -->
+      <ng-container *ngIf="isProcessing && chatMessages.length === 0; else chatWindow">
         <mat-card class="processing-card">
           <mat-progress-spinner mode="indeterminate"></mat-progress-spinner>
           <p>Processing your document...</p>
+          <p *ngIf="processingStage" class="processing-stage">{{ processingStage }}</p>
+          
+          <!-- Detailed progress information -->
+          <div *ngIf="processingProgress > 0" class="detailed-progress">
+            <div class="progress-bar-container">
+              <div class="progress-bar-wrapper">
+                <div class="progress-bar-fill" [style.width.%]="processingProgress"></div>
+              </div>
+              <div class="progress-percentage">{{ processingProgress }}%</div>
+            </div>
+            
+            <!-- Processing stages visualization -->
+            <div class="processing-stages">
+              <div class="stage-item" [ngClass]="{'active': processingProgress <= 30, 'completed': processingProgress > 30}">
+                <div class="stage-icon">
+                  <mat-icon>description</mat-icon>
+                </div>
+                <div class="stage-label">Extracting</div>
+              </div>
+              <div class="stage-connector"></div>
+              <div class="stage-item" [ngClass]="{'active': processingProgress > 30 && processingProgress <= 50, 'completed': processingProgress > 50}">
+                <div class="stage-icon">
+                  <mat-icon>content_cut</mat-icon>
+                </div>
+                <div class="stage-label">Splitting</div>
+              </div>
+              <div class="stage-connector"></div>
+              <div class="stage-item" [ngClass]="{'active': processingProgress > 50 && processingProgress <= 70, 'completed': processingProgress > 70}">
+                <div class="stage-icon">
+                  <mat-icon>psychology</mat-icon>
+                </div>
+                <div class="stage-label">Embedding</div>
+              </div>
+              <div class="stage-connector"></div>
+              <div class="stage-item" [ngClass]="{'active': processingProgress > 70 && processingProgress < 100, 'completed': processingProgress >= 100}">
+                <div class="stage-icon">
+                  <mat-icon>storage</mat-icon>
+                </div>
+                <div class="stage-label">Indexing</div>
+              </div>
+            </div>
+          </div>
         </mat-card>
       </ng-container>
 
       <!-- Actual chat window -->
       <ng-template #chatWindow>
-        <mat-card *ngFor="let msg of chatMessages" 
-          [ngClass]="{
-            'message-bubble': true,
-            'user-message': msg.sender === 'User',
-            'assistant-message': msg.sender !== 'User'
-          }">
-          <strong>{{ msg.sender }}:</strong>
-          <div [innerHTML]="msg.text"></div>
-        </mat-card>
+        <div class="messages-container">
+          <!-- System error message with icon -->
+          <mat-card *ngFor="let msg of chatMessages" 
+            [ngClass]="{
+              'message-bubble': true,
+              'user-message': msg.sender === 'User',
+              'assistant-message': msg.sender === 'Assistant',
+              'system-message': msg.sender === 'System',
+              'error-bubble': msg.text.includes('error-message')
+            }">
+            <div class="message-header">
+              <strong>{{ msg.sender }}</strong>
+              <mat-icon *ngIf="msg.text.includes('error-message')" class="error-icon">error</mat-icon>
+            </div>
+            <div [innerHTML]="msg.text" class="message-content"></div>
+          </mat-card>
+          
+          <!-- Loading indicator for next message -->
+          <mat-card *ngIf="isAnswering" class="message-bubble assistant-message loading-message">
+            <div class="message-header">
+              <strong>Assistant</strong>
+            </div>
+            
+            <!-- Show the question being processed -->
+            <div *ngIf="currentQuestion" class="pending-question">
+              <p><em>Answering: "{{ currentQuestion }}"</em></p>
+            </div>
+            
+            <!-- Alternative questions section -->
+            <div *ngIf="alternativeQuestions.length > 0" class="alternative-questions">
+              <div class="alt-questions-header">
+                <span>Generating alternative questions:</span>
+                <span class="alt-count">{{ alternativeQuestions.length }} / {{ totalAlternatives > 0 ? totalAlternatives : '5' }}</span>
+              </div>
+              <div class="alt-questions-list">
+                <div *ngFor="let question of alternativeQuestions" class="alt-question">
+                  <span class="alt-question-number">{{ question.index }}.</span>
+                  <span class="alt-question-text">{{ question.text }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Search query section -->
+            <div *ngIf="currentSearchQuery" class="search-query">
+              <div class="search-header">
+                <span>Searching for information:</span>
+                <span class="search-count" *ngIf="totalSearches > 0">{{ searchIndex }} / {{ totalSearches }}</span>
+              </div>
+              <div class="search-text">
+                <span>"{{ currentSearchQuery }}"</span>
+              </div>
+            </div>
+            
+            <!-- Progress bar for answer generation -->
+            <div *ngIf="!alternativeQuestions.length && !currentSearchQuery" class="answer-progress">
+              <div class="progress-info">
+                <span>{{ processingStage }}</span>
+                <span>{{ answeringProgress }}%</span>
+              </div>
+              <mat-progress-bar [mode]="answeringProgress > 0 ? 'determinate' : 'indeterminate'" [value]="answeringProgress"></mat-progress-bar>
+            </div>
+            
+            <div class="loading-dots">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </mat-card>
+        </div>
       </ng-template>
     </div>
 
@@ -39,15 +178,18 @@
     <div class="question-input">
       <mat-form-field appearance="fill" class="full-width">
         <mat-label>Ask a question</mat-label>
-        <input matInput [(ngModel)]="questionText" />
+        <input matInput [(ngModel)]="questionText" (keyup.enter)="askQuestion()" [disabled]="isProcessing && chatMessages.length === 0 || isAnswering" />
+        <mat-icon matSuffix *ngIf="!questionText">help_outline</mat-icon>
+        <mat-icon matSuffix *ngIf="questionText">send</mat-icon>
+        <mat-icon matSuffix *ngIf="currentImagePath" color="accent" matTooltip="Question will include the uploaded image">image</mat-icon>
       </mat-form-field>
       <button
         mat-raised-button
         color="primary"
         (click)="askQuestion()"
-        [disabled]="isProcessing || !questionText.trim()"
+        [disabled]="isProcessing || isAnswering || !questionText.trim()"
       >
-        Send
+        <mat-icon>send</mat-icon>
       </button>
     </div>
   </div>
@@ -59,7 +201,9 @@
     </div>
     <ng-template #noPdf>
       <div class="placeholder">
+        <mat-icon class="placeholder-icon">picture_as_pdf</mat-icon>
         <p>No PDF uploaded yet</p>
+        <p class="placeholder-hint">Upload a PDF to start asking questions</p>
       </div>
     </ng-template>
   </div>
